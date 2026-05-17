@@ -1,14 +1,11 @@
 import { useState } from 'react'; // استيراد Hook الحالة
 import './style1.css';
-
 const LoginAndSign = () => {
     // تعريف حالة للتحكم في الكلاس active
     const [isActive, setIsActive] = useState(false);
-
     const switchMode = () => {
         setIsActive(!isActive); // تبديل الحالة بين true و false
     };
-
     return (
         <div className='body'>
         <div className={`container ${isActive ? 'active' : ''}`} id="main-container">
@@ -44,7 +41,6 @@ const LoginAndSign = () => {
                     <button className="btn action-btn">Login</button>
                 </div>
             </div>
-
             <div className="overlay-container">
                 <div className="overlay">
                     <div className="overlay-left">
