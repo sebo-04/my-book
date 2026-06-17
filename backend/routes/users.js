@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const usersController = require('../controllers/usersController');
+router.get('/users', usersController.getUsers);
+router.put('/users/:id/role', usersController.toggleUserRole);
+router.put('/users/:id/ban', usersController.toggleUserBan);
+router.get('/loans', usersController.getLoans);
+router.put('/loans/:id/approve', usersController.approveLoan);
+router.delete('/loans/:id', usersController.deleteLoan);
+module.exports = router;

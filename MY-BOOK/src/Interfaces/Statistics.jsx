@@ -1,27 +1,40 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { Chart, registerables } from 'chart.js';
-
-// تسجيل المكونات الأساسية لـ Chart.js لتعمل في بيئة التصدير
 Chart.register(...registerables);
-
-const Dashboard = ({ statsData, chartData }) => {
+const Dashboard = () => {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const [stats, setStats] = useState({ lateLoans: 0, activeLoans: 0, totalUsers: 0, totalBooks: 0 });
+  const [chartData, setChartData] = useState([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('http://localhost:3030/api/dashboard/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+          setStats(data.statsData);
+          setChartData(data.chartData);
+        }
+      } catch (error) {
+        console.error('Error fetching stats from API:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // قيم افتراضية في حال لم يتم تمرير بيانات من الباك اند بعد
-  const stats = statsData || { lateLoans: 5, activeLoans: 20, totalUsers: 80, totalBooks: 50 };
-  const defaultChartData = chartData || [1, 7, 4, 15, 11, 6, 12, 11, 11, 18, 10, 21];
-
+    fetchDashboardData();
+  }, []);
+  const defaultChartData = useMemo(() => {
+    return chartData;
+  }, [chartData]);
   useEffect(() => {
     if (chartRef.current) {
       const ctx = chartRef.current.getContext('2d');
-
-      // تدمير المخطط القديم إذا كان موجوداً لمنع تكرار الرندرة (Memory Leaks)
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
       }
-
-      // بناء المخطط البياني الجديد
       chartInstanceRef.current = new Chart(ctx, {
         type: 'line',
         data: {
@@ -31,9 +44,9 @@ const Dashboard = ({ statsData, chartData }) => {
             data: defaultChartData,
             borderColor: '#1A1A1A',
             borderWidth: 2,
-            pointBackgroundColor: 'transparent',
-            pointBorderColor: 'transparent',
-            tension: 0,
+            pointBackgroundColor: '#1A1A1A', 
+            pointRadius: 3,
+            tension: 0.1, 
           }]
         },
         options: {
@@ -48,45 +61,38 @@ const Dashboard = ({ statsData, chartData }) => {
               ticks: { color: '#332929', font: { size: 12, weight: 'bold' } }
             },
             y: {
-              min: 1,
-              max: 30,
-              ticks: { stepSize: 5, color: '#332929', font: { size: 11 } },
+              beginAtZero: true, 
+              ticks: { color: '#332929', font: { size: 11 } },
               grid: { color: '#4A3E3D', lineWidth: 0.7 }
             }
           }
         }
       });
     }
-
-    // تنظيف المخطط عند خروج المكون من الواجهة (Unmount)
     return () => {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
       }
     };
   }, [defaultChartData]);
-
-  // تعيين كائن ستايل عام متوافق مع React يطبق على الـ body أو الحاوية المحيطة
-  useEffect(() => {
-    // لتطبيق تنسيق الخلفية وعناصر العرض المتمركزة على الصفحة كاملة
-    document.body.style.backgroundColor = '#FDF6E2';
-    document.body.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-    document.body.style.margin = '0';
-    document.body.style.padding = '20px';
-    document.body.style.display = 'flex';
-    document.body.style.justifyContent = 'center';
-    document.body.style.alignItems = 'center';
-    document.body.style.minHeight = '100vh';
-    document.body.style.color = '#4A3E3D';
-  }, []);
-
-  // كائنات الـ CSS المدمجة (Styles Objects)
   const styles = {
+    pageWrapper: {
+      backgroundColor: '#FDF6E2',
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      margin: '0',
+      padding: '20px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      color: '#4A3E3D',
+      width: '100%',
+    },
     dashboardContainer: {
       width: '100%',
       maxWidth: '1000px',
-      backgroundColor: '#FDF6E2',
       padding: '20px',
+      direction: 'rtl',
     },
     tabTitle: {
       backgroundColor: '#CDB48F',
@@ -100,7 +106,7 @@ const Dashboard = ({ statsData, chartData }) => {
       borderBottom: 'none',
       boxShadow: '0px 4px 6px rgba(0,0,0,0.1)',
       marginBottom: '20px',
-      marginRight: '20px',
+      marginRight: '20px', 
     },
     statsGrid: {
       display: 'grid',
@@ -155,66 +161,77 @@ const Dashboard = ({ statsData, chartData }) => {
       fontWeight: 'bold',
       marginBottom: '5px',
       color: '#332929',
+      textAlign: 'right',
     },
     chartSubtitle: {
       fontSize: '12px',
       color: '#554A49',
       marginBottom: '15px',
+      textAlign: 'right',
     },
     canvasContainer: {
       position: 'relative',
       width: '100%',
       height: '350px',
     },
+    loadingText: {
+      textAlign: 'center',
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: '#4A3E3D'
+    }
   };
 
   return (
-    <div style={styles.dashboardContainer}>
-      <div style={styles.tabTitle}>الإحصاءات</div>
-      
-      <div style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <div style={styles.statTitle}>الاستعارات المتأخرة</div>
-          <div style={styles.statValueContainer}>
-            <span style={styles.statNumber}>{stats.lateLoans}</span>
-            <span style={styles.lateIcon}>📕</span>
-          </div>
-        </div>
-
-        <div style={styles.statCard}>
-          <div style={styles.statTitle}>الكتب المستعارة</div>
-          <div style={styles.statValueContainer}>
-            <span style={styles.statNumber}>{stats.activeLoans}</span>
-            <span style={styles.statIcon}>⇄</span>
-          </div>
-        </div>
-
-        <div style={styles.statCard}>
-          <div style={styles.statTitle}>إجمالي المستخدمين</div>
-          <div style={styles.statValueContainer}>
-            <span style={styles.statNumber}>{stats.totalUsers}</span>
-            <span style={styles.statIcon}>👥</span>
-          </div>
-        </div>
-
-        <div style={styles.statCard}>
-          <div style={styles.statTitle}>إجمالي الكتب</div>
-          <div style={styles.statValueContainer}>
-            <span style={styles.statNumber}>{stats.totalBooks}</span>
-            <span style={styles.statIcon}>📖</span>
-          </div>
-        </div>
-      </div>
-
-      <div style={styles.chartSection}>
-        <div style={styles.chartTitle}>نشاط الإعارات</div>
-        <div style={styles.chartSubtitle}>الأيام / الأشهر</div>
-        <div style={styles.canvasContainer}>
-          <canvas ref={chartRef} />
-        </div>
+    <div style={styles.pageWrapper}>
+      <div style={styles.dashboardContainer}>
+        <div style={styles.tabTitle}>الإحصاءات</div>
+        
+        {loading ? (
+          <div style={styles.loadingText}>جاري تحميل الإحصائيات الحية... 🔄</div>
+        ) : (
+          <>
+            <div style={styles.statsGrid}>
+              <div style={styles.statCard}>
+                <div style={styles.statTitle}>الاستعارات المتأخرة</div>
+                <div style={styles.statValueContainer}>
+                  <span style={styles.statNumber}>{stats.lateLoans}</span>
+                  <span style={styles.lateIcon}>📕</span>
+                </div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statTitle}>الكتب المستعارة</div>
+                <div style={styles.statValueContainer}>
+                  <span style={styles.statNumber}>{stats.activeLoans}</span>
+                  <span style={styles.statIcon}>⇄</span>
+                </div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statTitle}>إجمالي المستخدمين</div>
+                <div style={styles.statValueContainer}>
+                  <span style={styles.statNumber}>{stats.totalUsers}</span>
+                  <span style={styles.statIcon}>👥</span>
+                </div>
+              </div>
+              <div style={styles.statCard}>
+                <div style={styles.statTitle}>إجمالي الكتب</div>
+                <div style={styles.statValueContainer}>
+                  <span style={styles.statNumber}>{stats.totalBooks}</span>
+                  <span style={styles.statIcon}>📖</span>
+                </div>
+              </div>
+            </div>
+            <div style={styles.chartSection}>
+              <div style={styles.chartTitle}>نشاط الإعارات</div>
+              <div style={styles.chartSubtitle}>الأيام / الأشهر (السنة الحالية)</div>
+              <div style={styles.canvasContainer}>
+                <canvas ref={chartRef} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 };
-
 export default Dashboard;

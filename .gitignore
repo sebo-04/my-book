@@ -1,0 +1,4 @@
+node_modules/
+MY-BOOK/node_modules/
+uploads/
+.env
